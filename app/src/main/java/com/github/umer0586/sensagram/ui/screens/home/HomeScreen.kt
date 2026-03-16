@@ -22,6 +22,8 @@ package com.github.umer0586.sensagram.ui.screens.home
 import android.Manifest
 import android.content.res.Configuration
 import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
@@ -36,11 +38,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -48,6 +52,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -55,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.umer0586.sensagram.data.streamer.StreamingInfo
+import com.github.umer0586.sensagram.data.util.buildBatteryOptimizationIntent
 import com.github.umer0586.sensagram.ui.components.StreamControllerButton
 import com.github.umer0586.sensagram.ui.theme.SensaGramTheme
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -74,6 +80,49 @@ fun HomeScreen(
     }
 
     val uiState by viewModel.uiState.collectAsState()
+    val context  = LocalContext.current
+
+    // Launcher that opens the system "Disable battery optimisation" dialog.
+    // The result is ignored — the stream is already starting; this is advisory only.
+    val batteryOptLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) {
+        viewModel.onUiEvent(HomeScreenEvent.OnBatteryOptimizationRequestDismissed)
+    }
+
+    if (uiState.showBatteryOptimizationRequest) {
+        AlertDialog(
+            onDismissRequest = {
+                viewModel.onUiEvent(HomeScreenEvent.OnBatteryOptimizationRequestDismissed)
+            },
+            icon = {
+                Icon(Icons.Filled.Warning, contentDescription = null)
+            },
+            title = { Text("Battery Optimisation") },
+            text = {
+                Text(
+                    "Battery optimisation is enabled for SensaGram. " +
+                    "On some devices (especially Xiaomi / HyperOS) this causes " +
+                    "the data stream to stall after ~10 minutes with the screen off.\n\n" +
+                    "Tap Allow on the next screen to keep streaming running in the background."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    batteryOptLauncher.launch(context.buildBatteryOptimizationIntent())
+                }) {
+                    Text("Open Settings")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    viewModel.onUiEvent(HomeScreenEvent.OnBatteryOptimizationRequestDismissed)
+                }) {
+                    Text("Skip")
+                }
+            }
+        )
+    }
 
     HomeScreenContent(
         uiState = uiState,
@@ -83,7 +132,6 @@ fun HomeScreen(
             Manifest.permission.POST_NOTIFICATIONS
         ) else null
     )
-
 
 }
 

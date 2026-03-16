@@ -19,6 +19,10 @@
          Without this, Doze mode will pause the flush scheduler after ~10 minutes
          of screen-off time, silently stopping all data transmission. -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Allows the app to request that the system exempt it from battery optimisation.
+         Required to show the "Disable battery optimisation" system dialog.
+         On Xiaomi/HyperOS this is essential — WAKE_LOCK alone is insufficient. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <application
         android:allowBackup="true"

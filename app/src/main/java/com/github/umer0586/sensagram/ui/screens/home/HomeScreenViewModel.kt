@@ -31,6 +31,7 @@ import com.github.umer0586.sensagram.data.repository.SettingsRepositoryImp
 import com.github.umer0586.sensagram.data.service.SensorStreamingService
 import com.github.umer0586.sensagram.data.service.StreamingServiceBindHelper
 import com.github.umer0586.sensagram.data.streamer.StreamingInfo
+import com.github.umer0586.sensagram.data.util.isIgnoringBatteryOptimizations
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -41,12 +42,15 @@ data class HomeScreenUiState(
     val isStreaming: Boolean = false,
     val isReconnecting: Boolean = false,
     val streamingInfo: StreamingInfo? = null,
-    val selectedSensorsCount : Int = 0
+    val selectedSensorsCount: Int = 0,
+    // true when we should prompt the user to disable battery optimisation
+    val showBatteryOptimizationRequest: Boolean = false,
 )
 
 sealed interface HomeScreenEvent {
     data object OnStartSubmit : HomeScreenEvent
     data object OnStopSubmit : HomeScreenEvent
+    data object OnBatteryOptimizationRequestDismissed : HomeScreenEvent
 }
 
 
@@ -144,17 +148,26 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
 
     }
 
-    fun onUiEvent(event : HomeScreenEvent){
-        when(event){
+    fun onUiEvent(event: HomeScreenEvent) {
+        when (event) {
             is HomeScreenEvent.OnStartSubmit -> {
                 Log.d(TAG, "starting foreground service")
+                // If the app is not yet excluded from battery optimisation, raise a
+                // flag so the UI can prompt the user before starting the service.
+                // This is particularly important on Xiaomi/HyperOS devices where
+                // WAKE_LOCK alone is insufficient to prevent Doze from stalling the stream.
+                if (!appContext.isIgnoringBatteryOptimizations()) {
+                    _uiState.update { it.copy(showBatteryOptimizationRequest = true) }
+                }
                 val intent = Intent(appContext, SensorStreamingService::class.java)
                 ContextCompat.startForegroundService(appContext, intent)
             }
             HomeScreenEvent.OnStopSubmit -> {
                 Log.d(TAG, "stopping foreground service")
                 sensorStreamingService.stopStreaming()
-                //applicationContext.stopService(Intent(applicationContext, StreamingService::class.java))
+            }
+            HomeScreenEvent.OnBatteryOptimizationRequestDismissed -> {
+                _uiState.update { it.copy(showBatteryOptimizationRequest = false) }
             }
         }
     }
