@@ -16,3 +16,10 @@
 .externalNativeBuild
 .cxx
 local.properties
+*~
+.*~
+*.un~
+*.swp
+*.swo
+*.bak
+*.orig
