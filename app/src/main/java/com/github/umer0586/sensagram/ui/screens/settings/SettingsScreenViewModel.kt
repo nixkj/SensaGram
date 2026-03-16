@@ -26,6 +26,7 @@ import com.github.umer0586.sensagram.data.model.DEFAULT_IP
 import com.github.umer0586.sensagram.data.model.DEFAULT_PORT
 import com.github.umer0586.sensagram.data.model.DEFAULT_SAMPLING_RATE
 import com.github.umer0586.sensagram.data.model.DEFAULT_STREAM_ON_BOOT
+import com.github.umer0586.sensagram.data.model.DEFAULT_SEND_INTERVAL_MS
 import com.github.umer0586.sensagram.data.repository.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -44,7 +45,10 @@ data class SettingsScreenUiState(
     val samplingRate: Int = DEFAULT_SAMPLING_RATE,
     val savedSamplingRate: Int = DEFAULT_SAMPLING_RATE,
     val isSamplingRateValid: Boolean = true,
-    val streamOnBoot : Boolean = DEFAULT_STREAM_ON_BOOT
+    val streamOnBoot : Boolean = DEFAULT_STREAM_ON_BOOT,
+    val sendIntervalMs: Int = DEFAULT_SEND_INTERVAL_MS,
+    val savedSendIntervalMs: Int = DEFAULT_SEND_INTERVAL_MS,
+    val isSendIntervalValid: Boolean = true,
 )
 
 sealed class SettingScreenEvent {
@@ -56,7 +60,8 @@ sealed class SettingScreenEvent {
     data class OnSaveSamplingRate(val samplingRate: Int) : SettingScreenEvent()
     data class OnStreamOnBootChange(val streamOnBoot: Boolean) : SettingScreenEvent()
     data class OnSaveStreamOnBoot(val streamOnBoot: Boolean) : SettingScreenEvent()
-
+    data class OnSendIntervalChange(val sendIntervalMs: Int) : SettingScreenEvent()
+    data class OnSaveSendInterval(val sendIntervalMs: Int) : SettingScreenEvent()
 }
 
 class SettingsScreenViewModel(private val settingsRepository: SettingsRepository) : ViewModel() {
@@ -70,42 +75,52 @@ class SettingsScreenViewModel(private val settingsRepository: SettingsRepository
     companion object {
         private val IPV4_REGEX =
             "^(([0-1]?[0-9]{1,2}\\.)|(2[0-4][0-9]\\.)|(25[0-5]\\.)){3}(([0-1]?[0-9]{1,2})|(2[0-4][0-9])|(25[0-5]))\$".toRegex()
+
+        /**
+         * RFC-1123 FQDN: one or more dot-separated labels where each label is
+         * 1–63 alphanumeric chars (hyphens allowed mid-label), ending with a
+         * recognised TLD of at least 2 chars.  Accepts e.g. "data.example.com".
+         */
+        private val FQDN_REGEX =
+            "^(?:[a-zA-Z0-9](?:[a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])?\\.)+[a-zA-Z]{2,}\$".toRegex()
+
+        private fun isValidRemoteAddress(input: String): Boolean =
+            IPV4_REGEX.matches(input) || FQDN_REGEX.matches(input)
     }
 
 
     init {
 
-        Log.d(TAG,"created()")
+        Log.d(TAG, "created()")
 
         viewModelScope.launch {
-
             settingsRepository.setting.collect { settings ->
-                //Log.d(TAG,"settings collected : $settings")
                 _uiState.update {
                     it.copy(
-                        savedIpAddress = settings.ipAddress,
-                        savedPortNo = settings.portNo,
-                        savedSamplingRate = settings.samplingRate,
-                        streamOnBoot = settings.streamOnBoot,
-
+                        savedIpAddress      = settings.ipAddress,
+                        savedPortNo         = settings.portNo,
+                        savedSamplingRate   = settings.samplingRate,
+                        streamOnBoot        = settings.streamOnBoot,
+                        savedSendIntervalMs = settings.sendIntervalMs,
                     )
                 }
             }
-
         }
 
     }
 
-    fun onUiEvent(event : SettingScreenEvent){
-        when(event){
-            is SettingScreenEvent.OnIpAddressChange -> onIpAddressChange(event.ipAddress)
-            is SettingScreenEvent.OnPortNoChange -> onPortNoChange(event.portNo)
+    fun onUiEvent(event: SettingScreenEvent) {
+        when (event) {
+            is SettingScreenEvent.OnIpAddressChange    -> onIpAddressChange(event.ipAddress)
+            is SettingScreenEvent.OnPortNoChange       -> onPortNoChange(event.portNo)
             is SettingScreenEvent.OnSamplingRateChange -> onSamplingRateChange(event.samplingRate)
-            is SettingScreenEvent.OnSaveIpAddress -> saveIpAddress(event.ipAddress)
-            is SettingScreenEvent.OnSavePortNo -> savePortNo(event.portNo)
-            is SettingScreenEvent.OnSaveSamplingRate -> saveSamplingRate(event.samplingRate)
-            is SettingScreenEvent.OnSaveStreamOnBoot -> saveStreamOnBoot(event.streamOnBoot)
+            is SettingScreenEvent.OnSaveIpAddress      -> saveIpAddress(event.ipAddress)
+            is SettingScreenEvent.OnSavePortNo         -> savePortNo(event.portNo)
+            is SettingScreenEvent.OnSaveSamplingRate   -> saveSamplingRate(event.samplingRate)
+            is SettingScreenEvent.OnSaveStreamOnBoot   -> saveStreamOnBoot(event.streamOnBoot)
             is SettingScreenEvent.OnStreamOnBootChange -> onStreamOnBootChange(event.streamOnBoot)
+            is SettingScreenEvent.OnSendIntervalChange -> onSendIntervalChange(event.sendIntervalMs)
+            is SettingScreenEvent.OnSaveSendInterval   -> saveSendInterval(event.sendIntervalMs)
         }
     }
 
@@ -113,8 +128,8 @@ class SettingsScreenViewModel(private val settingsRepository: SettingsRepository
     private fun onIpAddressChange(ipAddress: String) {
         _uiState.update {
             it.copy(
-                ipAddress = ipAddress,
-                isIpAddressValid = IPV4_REGEX.matches(ipAddress)
+                ipAddress        = ipAddress,
+                isIpAddressValid = isValidRemoteAddress(ipAddress)
             )
         }
     }
@@ -122,7 +137,7 @@ class SettingsScreenViewModel(private val settingsRepository: SettingsRepository
     private fun onPortNoChange(portNo: Int) {
         _uiState.update {
             it.copy(
-                portNo = portNo,
+                portNo        = portNo,
                 isPortNoValid = portNo in 0..65534
             )
         }
@@ -131,7 +146,7 @@ class SettingsScreenViewModel(private val settingsRepository: SettingsRepository
     private fun onSamplingRateChange(samplingRate: Int) {
         _uiState.update {
             it.copy(
-                samplingRate = samplingRate,
+                samplingRate        = samplingRate,
                 isSamplingRateValid = samplingRate in 0..200000
             )
         }
@@ -139,8 +154,16 @@ class SettingsScreenViewModel(private val settingsRepository: SettingsRepository
 
     private fun onStreamOnBootChange(streamOnBoot: Boolean) {
         _uiState.update {
+            it.copy(streamOnBoot = streamOnBoot)
+        }
+    }
+
+    private fun onSendIntervalChange(sendIntervalMs: Int) {
+        _uiState.update {
             it.copy(
-                streamOnBoot = streamOnBoot
+                sendIntervalMs      = sendIntervalMs,
+                // Valid range: 50 ms (prevent hammering) to 60 000 ms (1 minute)
+                isSendIntervalValid = sendIntervalMs in 50..60000
             )
         }
     }
@@ -148,15 +171,14 @@ class SettingsScreenViewModel(private val settingsRepository: SettingsRepository
     private fun saveIpAddress(ipAddress: String) {
         viewModelScope.launch {
             val oldSettings = settingsRepository.setting.first()
-            settingsRepository.saveSetting( oldSettings.copy(ipAddress = ipAddress) )
+            settingsRepository.saveSetting(oldSettings.copy(ipAddress = ipAddress))
         }
     }
-
 
     private fun savePortNo(portNo: Int) {
         viewModelScope.launch {
             val oldSettings = settingsRepository.setting.first()
-            settingsRepository.saveSetting( oldSettings.copy(portNo = portNo))
+            settingsRepository.saveSetting(oldSettings.copy(portNo = portNo))
         }
     }
 
@@ -172,7 +194,13 @@ class SettingsScreenViewModel(private val settingsRepository: SettingsRepository
             val oldSettings = settingsRepository.setting.first()
             settingsRepository.saveSetting(oldSettings.copy(streamOnBoot = streamOnBoot))
         }
+    }
 
+    private fun saveSendInterval(sendIntervalMs: Int) {
+        viewModelScope.launch {
+            val oldSettings = settingsRepository.setting.first()
+            settingsRepository.saveSetting(oldSettings.copy(sendIntervalMs = sendIntervalMs))
+        }
     }
 
 }

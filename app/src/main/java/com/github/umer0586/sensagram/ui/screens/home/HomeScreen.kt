@@ -267,6 +267,7 @@ fun HomeScreenContentPreview2(
             address = "192.168.1.1",
             portNo = 5000,
             samplingRate = 1000,
+            sendIntervalMs = 500,
             sensors = emptyList()
         )
     )
@@ -296,6 +297,7 @@ fun HomeScreenContentLandScapePreview(
             address = "192.168.1.1",
             portNo = 5000,
             samplingRate = 1000,
+            sendIntervalMs = 500,
             sensors = emptyList()
         )
     )

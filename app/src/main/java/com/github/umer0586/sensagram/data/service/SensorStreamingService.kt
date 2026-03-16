@@ -118,6 +118,7 @@ class SensorStreamingService : Service() {
             address = settings.ipAddress,
             portNo = settings.portNo,
             samplingRate = settings.samplingRate,
+            sendIntervalMs = settings.sendIntervalMs,
             sensors = settings.selectedSensors.toSensors(applicationContext)
         )
 

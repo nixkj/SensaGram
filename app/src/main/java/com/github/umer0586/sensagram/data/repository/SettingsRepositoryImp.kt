@@ -55,12 +55,14 @@ class SettingsRepositoryImp(
     private val KEY_SAMPLING_RATE = intPreferencesKey("SAMPLING_RATE")
     private val KEY_STREAM_ON_BOOT = booleanPreferencesKey("STREAM_ON_BOOT")
     private val KEY_GPS_STREAMING = booleanPreferencesKey("GPS_STREAMING")
+    private val KEY_SEND_INTERVAL_MS = intPreferencesKey("SEND_INTERVAL_MS")
 
     private val DEFAULT_IP = "127.0.0.1"
     private val DEFAULT_PORT = 8080
     private val DEFAULT_SAMPLING_RATE = 20000
     private val DEFAULT_STREAM_ON_BOOT = false
     private val DEFAULT_GPS_STREAMING = false
+    private val DEFAULT_SEND_INTERVAL_MS = 500
 
     override suspend fun saveSetting(setting: Setting) = withContext<Unit>(ioDispatcher) {
         context.userPreferencesDataStore.edit { pref ->
@@ -70,7 +72,7 @@ class SettingsRepositoryImp(
             pref[KEY_SAMPLING_RATE] = setting.samplingRate
             pref[KEY_STREAM_ON_BOOT] = setting.streamOnBoot
             pref[KEY_GPS_STREAMING] = setting.gpsStreaming
-
+            pref[KEY_SEND_INTERVAL_MS] = setting.sendIntervalMs
         }
     }
 
@@ -84,8 +86,8 @@ class SettingsRepositoryImp(
                 } ?: emptyList(),
                 samplingRate = pref[KEY_SAMPLING_RATE] ?: DEFAULT_SAMPLING_RATE,
                 streamOnBoot = pref[KEY_STREAM_ON_BOOT] ?: DEFAULT_STREAM_ON_BOOT,
-                gpsStreaming = pref[KEY_GPS_STREAMING] ?: DEFAULT_GPS_STREAMING
-
+                gpsStreaming = pref[KEY_GPS_STREAMING] ?: DEFAULT_GPS_STREAMING,
+                sendIntervalMs = pref[KEY_SEND_INTERVAL_MS] ?: DEFAULT_SEND_INTERVAL_MS
             )
         }.flowOn(ioDispatcher)
 

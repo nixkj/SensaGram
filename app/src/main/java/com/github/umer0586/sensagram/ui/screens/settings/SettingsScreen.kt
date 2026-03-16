@@ -176,6 +176,44 @@ fun SettingsScreenContent(
             }
         )
 
+        var sendIntervalEditMode by remember { mutableStateOf(false) }
+
+        AnimatedVisibility(visible = sendIntervalEditMode) {
+            Text(
+                modifier = Modifier
+                    .padding(20.dp)
+                    .testTag("SendIntervalDetail"),
+                text = "How often (in milliseconds) the app sends a UDP packet containing " +
+                        "aggregated sensor stats (min, max, std dev) collected since the last send. " +
+                        "Valid range: 50 ms – 60 000 ms. Default: 500 ms.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        EditTextPreference(
+            modifier = Modifier.testTag("SendInterval"),
+            title = "Send Interval (ms)",
+            label = "Send Interval",
+            summary = uiState.savedSendIntervalMs.toString(),
+            value = uiState.sendIntervalMs.toString(),
+            onValueChange = {
+                try {
+                    onUIEvent(SettingScreenEvent.OnSendIntervalChange(it.toInt()))
+                } catch (e: NumberFormatException) { }
+            },
+            isError = !uiState.isSendIntervalValid,
+            editMode = sendIntervalEditMode,
+            onEditPressed = { sendIntervalEditMode = true },
+            onCancelledPressed = { sendIntervalEditMode = false },
+            onSavedPressed = {
+                onUIEvent(SettingScreenEvent.OnSaveSendInterval(it.toInt()))
+                sendIntervalEditMode = false
+            },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number
+            )
+        )
 
     }
 
@@ -217,7 +255,10 @@ fun SettingsScreenContentPreview(){
                 savedPortNo = 8080,
                 samplingRate = 200000,
                 savedSamplingRate = 200000,
-                isSamplingRateValid = true
+                isSamplingRateValid = true,
+                sendIntervalMs = 500,
+                savedSendIntervalMs = 500,
+                isSendIntervalValid = true,
             ),
             onUIEvent = {}
         )
