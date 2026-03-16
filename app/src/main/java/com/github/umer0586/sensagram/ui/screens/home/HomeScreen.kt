@@ -117,9 +117,20 @@ fun HomeScreenContent(
                 val count = uiState.selectedSensorsCount
                 InfoCard(
                     modifier = Modifier.testTag("InfoCard"),
-                    text = "sending data to\n${it.address}:${it.portNo}",
-                    warningText = if (count == 0) "No Sensor Selected" else null,
-                    successText = if (count !=0 ) "$count sensor${if(count > 1) "s" else ""} selected" else null
+                    text = if (uiState.isReconnecting)
+                        "reconnecting to\n${it.address}:${it.portNo}…"
+                    else
+                        "sending data to\n${it.address}:${it.portNo}",
+                    warningText = when {
+                        uiState.isReconnecting -> "Connection lost — retrying"
+                        count == 0             -> "No Sensor Selected"
+                        else                   -> null
+                    },
+                    successText = when {
+                        uiState.isReconnecting -> null
+                        count != 0             -> "$count sensor${if (count > 1) "s" else ""} selected"
+                        else                   -> null
+                    }
                 )
             }
         }
@@ -268,6 +279,7 @@ fun HomeScreenContentPreview2(
             portNo = 5000,
             samplingRate = 1000,
             sendIntervalMs = 500,
+            useTcp = false,
             sensors = emptyList()
         )
     )
@@ -298,6 +310,7 @@ fun HomeScreenContentLandScapePreview(
             portNo = 5000,
             samplingRate = 1000,
             sendIntervalMs = 500,
+            useTcp = false,
             sensors = emptyList()
         )
     )

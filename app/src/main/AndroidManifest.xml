@@ -15,6 +15,10 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <!-- Prevents the CPU from sleeping while sensor data is streaming.
+         Without this, Doze mode will pause the flush scheduler after ~10 minutes
+         of screen-off time, silently stopping all data transmission. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:allowBackup="true"

@@ -26,8 +26,12 @@ import android.app.Service
 import android.content.Intent
 import android.os.Binder
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
+import android.os.PowerManager
 import android.util.Log
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.github.umer0586.sensagram.MainActivity
 import com.github.umer0586.sensagram.R
@@ -51,9 +55,16 @@ class SensorStreamingService : Service() {
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var sensorsSelectionJob: Job? = null
 
-    private var streamingStartedCallBack: ((StreamingInfo) -> Unit)? = null
-    private var streamingStoppedCallBack: (() -> Unit)? = null
-    private var streamingErrorCallBack : ((Exception) -> Unit)? = null
+    // PARTIAL_WAKE_LOCK keeps the CPU running when the screen is off so the
+    // flush scheduler and sensor delivery are not paused by Doze mode.
+    private var wakeLock: PowerManager.WakeLock? = null
+
+    private var streamingStartedCallBack:          ((StreamingInfo) -> Unit)? = null
+    private var streamingStoppedCallBack:          (() -> Unit)?              = null
+    private var streamingErrorCallBack:            ((Exception) -> Unit)?     = null
+    private var streamingConnectionFailedCallBack: ((String) -> Unit)?        = null
+    private var streamingReconnectingCallBack:     (() -> Unit)?              = null
+    private var streamingReconnectedCallBack:      (() -> Unit)?              = null
 
     var isStreaming: Boolean = false
         get() =  sensorStreamer?.isStreaming ?: false
@@ -77,11 +88,20 @@ class SensorStreamingService : Service() {
         // val ACTION_STOP_SERVER = "ACTION_STOP_SERVER_" + StreamingService::class.java.getName()
     }
 
-    fun streamingStateListener(onStart: ((StreamingInfo) -> Unit)? = null, onStop: (() -> Unit)? = null, onError : ((Exception) -> Unit)? = null) {
-        streamingStartedCallBack = onStart
-        streamingStoppedCallBack = onStop
-        streamingErrorCallBack = onError
-
+    fun streamingStateListener(
+        onStart:            ((StreamingInfo) -> Unit)? = null,
+        onStop:             (() -> Unit)?              = null,
+        onError:            ((Exception) -> Unit)?     = null,
+        onConnectionFailed: ((String) -> Unit)?        = null,
+        onReconnecting:     (() -> Unit)?              = null,
+        onReconnected:      (() -> Unit)?              = null,
+    ) {
+        streamingStartedCallBack          = onStart
+        streamingStoppedCallBack          = onStop
+        streamingErrorCallBack            = onError
+        streamingConnectionFailedCallBack = onConnectionFailed
+        streamingReconnectingCallBack     = onReconnecting
+        streamingReconnectedCallBack      = onReconnected
     }
 
     override fun onCreate() {
@@ -119,6 +139,7 @@ class SensorStreamingService : Service() {
             portNo = settings.portNo,
             samplingRate = settings.samplingRate,
             sendIntervalMs = settings.sendIntervalMs,
+            useTcp = settings.useTcp,
             sensors = settings.selectedSensors.toSensors(applicationContext)
         )
 
@@ -147,7 +168,32 @@ class SensorStreamingService : Service() {
             }
         }
 
+        sensorStreamer?.onConnectionFailed { message ->
+            Handler(Looper.getMainLooper()).post {
+                Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
+            }
+            streamingConnectionFailedCallBack?.invoke(message)
+            stopForeground()
+        }
+
+        sensorStreamer?.onReconnecting {
+            streamingReconnectingCallBack?.invoke()
+        }
+
+        sensorStreamer?.onReconnected {
+            streamingReconnectedCallBack?.invoke()
+        }
+
         sensorStreamer?.onStreamingStarted { info ->
+            // Acquire wake lock now that streaming is confirmed active.
+            // PARTIAL_WAKE_LOCK keeps the CPU alive without preventing screen sleep.
+            val pm = getSystemService(POWER_SERVICE) as PowerManager
+            wakeLock = pm.newWakeLock(
+                PowerManager.PARTIAL_WAKE_LOCK,
+                "SensaGram::StreamingWakeLock"
+            ).also { it.acquire() }
+            Log.d(TAG, "WakeLock acquired")
+
             streamingStartedCallBack?.invoke(info)
             val notificationIntent = Intent(applicationContext, MainActivity::class.java)
             val pendingIntent =
@@ -174,12 +220,12 @@ class SensorStreamingService : Service() {
         }
 
         sensorStreamer?.onStreamingStopped {
-
+            releaseWakeLock()
             streamingStoppedCallBack?.invoke()
             stopForeground()
-
         }
         sensorStreamer?.onError {
+            releaseWakeLock()
             streamingErrorCallBack?.invoke(it)
             stopForeground()
         }
@@ -192,9 +238,19 @@ class SensorStreamingService : Service() {
         super.onDestroy()
         Log.d(TAG, "onDestroy()")
         sensorStreamer?.stopStreaming()
+        releaseWakeLock()
         stopForeground()
         scope.cancel()
+    }
 
+    private fun releaseWakeLock() {
+        wakeLock?.let {
+            if (it.isHeld) {
+                it.release()
+                Log.d(TAG, "WakeLock released")
+            }
+        }
+        wakeLock = null
     }
 
     // Binder given to clients

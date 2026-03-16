@@ -39,6 +39,7 @@ import kotlinx.coroutines.launch
 
 data class HomeScreenUiState(
     val isStreaming: Boolean = false,
+    val isReconnecting: Boolean = false,
     val streamingInfo: StreamingInfo? = null,
     val selectedSensorsCount : Int = 0
 )
@@ -94,38 +95,45 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
             sensorStreamingService.streamingStateListener(
                 onStart = { info ->
                     Log.d(TAG, "onStreamingStarted()")
-
                     _uiState.update {
                         it.copy(
-                            isStreaming = true,
-                            streamingInfo = info
+                            isStreaming    = true,
+                            isReconnecting = false,
+                            streamingInfo  = info
                         )
                     }
-
                 },
                 onStop = {
                     Log.d(TAG, "onStreamingStopped()")
                     _uiState.update {
                         it.copy(
-                            isStreaming = false,
-                            streamingInfo = null
+                            isStreaming    = false,
+                            isReconnecting = false,
+                            streamingInfo  = null
                         )
                     }
                 },
-
                 onError = {
                     Log.d(TAG, "onStreamingError()")
-
                     _uiState.update {
                         it.copy(
-                            isStreaming = false,
-                            streamingInfo = null
+                            isStreaming    = false,
+                            isReconnecting = false,
+                            streamingInfo  = null
                         )
                     }
-
                     onError?.invoke(it)
+                },
+                onReconnecting = {
+                    Log.d(TAG, "onReconnecting()")
+                    // Keep isStreaming=true so the stream button stays in "stop" mode;
+                    // set isReconnecting=true so the UI can show a reconnecting indicator.
+                    _uiState.update { it.copy(isReconnecting = true) }
+                },
+                onReconnected = {
+                    Log.d(TAG, "onReconnected()")
+                    _uiState.update { it.copy(isReconnecting = false) }
                 }
-
             )
 
         }
@@ -153,7 +161,10 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
 
     override fun onCleared() {
         Log.d(TAG, "onCleared()")
-        sensorStreamingService.streamingStateListener(onStart = null, onStop = null, onError = null)
+        sensorStreamingService.streamingStateListener(
+            onStart = null, onStop = null, onError = null,
+            onReconnecting = null, onReconnected = null
+        )
         streamingServiceBindHelper.unBindFromService()
     }
 

@@ -99,5 +99,7 @@ dependencies {
 
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-    debugImplementation(libs.leakcanary.android)
+    // LeakCanary removed — it installs a "Leaks" launcher icon on the home screen
+    // which is unnecessary for production debug builds. Re-add if memory leak
+    // investigation is needed: debugImplementation(libs.leakcanary.android)
 }

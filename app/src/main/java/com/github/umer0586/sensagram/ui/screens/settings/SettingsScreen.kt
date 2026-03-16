@@ -176,6 +176,19 @@ fun SettingsScreenContent(
             }
         )
 
+        SwitchPreference(
+            title = "Use TCP",
+            subtitle = if (uiState.useTcp)
+                "Transport: TCP — server must be running before streaming starts"
+            else
+                "Transport: UDP — fire-and-forget, server can start anytime",
+            checked = uiState.useTcp,
+            onCheckedChange = {
+                onUIEvent(SettingScreenEvent.OnUseTcpChange(it))
+                onUIEvent(SettingScreenEvent.OnSaveUseTcp(it))
+            }
+        )
+
         var sendIntervalEditMode by remember { mutableStateOf(false) }
 
         AnimatedVisibility(visible = sendIntervalEditMode) {
@@ -259,6 +272,7 @@ fun SettingsScreenContentPreview(){
                 sendIntervalMs = 500,
                 savedSendIntervalMs = 500,
                 isSendIntervalValid = true,
+                useTcp = false,
             ),
             onUIEvent = {}
         )

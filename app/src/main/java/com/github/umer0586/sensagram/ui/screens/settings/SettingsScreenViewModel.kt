@@ -27,6 +27,7 @@ import com.github.umer0586.sensagram.data.model.DEFAULT_PORT
 import com.github.umer0586.sensagram.data.model.DEFAULT_SAMPLING_RATE
 import com.github.umer0586.sensagram.data.model.DEFAULT_STREAM_ON_BOOT
 import com.github.umer0586.sensagram.data.model.DEFAULT_SEND_INTERVAL_MS
+import com.github.umer0586.sensagram.data.model.DEFAULT_USE_TCP
 import com.github.umer0586.sensagram.data.repository.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -49,6 +50,7 @@ data class SettingsScreenUiState(
     val sendIntervalMs: Int = DEFAULT_SEND_INTERVAL_MS,
     val savedSendIntervalMs: Int = DEFAULT_SEND_INTERVAL_MS,
     val isSendIntervalValid: Boolean = true,
+    val useTcp: Boolean = DEFAULT_USE_TCP,
 )
 
 sealed class SettingScreenEvent {
@@ -62,6 +64,8 @@ sealed class SettingScreenEvent {
     data class OnSaveStreamOnBoot(val streamOnBoot: Boolean) : SettingScreenEvent()
     data class OnSendIntervalChange(val sendIntervalMs: Int) : SettingScreenEvent()
     data class OnSaveSendInterval(val sendIntervalMs: Int) : SettingScreenEvent()
+    data class OnUseTcpChange(val useTcp: Boolean) : SettingScreenEvent()
+    data class OnSaveUseTcp(val useTcp: Boolean) : SettingScreenEvent()
 }
 
 class SettingsScreenViewModel(private val settingsRepository: SettingsRepository) : ViewModel() {
@@ -102,6 +106,7 @@ class SettingsScreenViewModel(private val settingsRepository: SettingsRepository
                         savedSamplingRate   = settings.samplingRate,
                         streamOnBoot        = settings.streamOnBoot,
                         savedSendIntervalMs = settings.sendIntervalMs,
+                        useTcp              = settings.useTcp,
                     )
                 }
             }
@@ -121,6 +126,8 @@ class SettingsScreenViewModel(private val settingsRepository: SettingsRepository
             is SettingScreenEvent.OnStreamOnBootChange -> onStreamOnBootChange(event.streamOnBoot)
             is SettingScreenEvent.OnSendIntervalChange -> onSendIntervalChange(event.sendIntervalMs)
             is SettingScreenEvent.OnSaveSendInterval   -> saveSendInterval(event.sendIntervalMs)
+            is SettingScreenEvent.OnUseTcpChange       -> onUseTcpChange(event.useTcp)
+            is SettingScreenEvent.OnSaveUseTcp         -> saveUseTcp(event.useTcp)
         }
     }
 
@@ -200,6 +207,17 @@ class SettingsScreenViewModel(private val settingsRepository: SettingsRepository
         viewModelScope.launch {
             val oldSettings = settingsRepository.setting.first()
             settingsRepository.saveSetting(oldSettings.copy(sendIntervalMs = sendIntervalMs))
+        }
+    }
+
+    private fun onUseTcpChange(useTcp: Boolean) {
+        _uiState.update { it.copy(useTcp = useTcp) }
+    }
+
+    private fun saveUseTcp(useTcp: Boolean) {
+        viewModelScope.launch {
+            val oldSettings = settingsRepository.setting.first()
+            settingsRepository.saveSetting(oldSettings.copy(useTcp = useTcp))
         }
     }
 
