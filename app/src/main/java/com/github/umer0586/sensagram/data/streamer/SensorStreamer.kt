@@ -424,13 +424,32 @@ class SensorStreamer(
             context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
         ) return
 
-        // requestLocationUpdates internally creates a Handler — must run on a Looper thread.
+        // requestLocationUpdates must run on a Looper thread.
         handler.post {
+            // Register GPS_PROVIDER for accurate fixes.
             locationManager.requestLocationUpdates(
                 LocationManager.GPS_PROVIDER, 0, 0f, this, handlerThread.looper
             )
+
+            // Also register NETWORK_PROVIDER as a warm-up source.
+            // On a cold start the GPS chipset can take minutes to acquire satellites.
+            // The network provider (cell towers + Wi-Fi) delivers a coarse fix in
+            // 2-3 seconds, which (a) immediately populates latestLocation so GPS
+            // columns are never blank, and (b) seeds AGPS so the GPS chipset gets
+            // its first precise fix much faster.
+            // Both providers share the same onLocationChanged callback; GPS fixes
+            // will naturally supersede network fixes once they arrive because they
+            // are more accurate and arrive later.
+            if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                locationManager.requestLocationUpdates(
+                    LocationManager.NETWORK_PROVIDER, 0, 0f, this, handlerThread.looper
+                )
+                Log.d(TAG, "GPS + network location streaming enabled (fast cold-start mode)")
+            } else {
+                Log.d(TAG, "GPS streaming enabled (network provider unavailable)")
+            }
+
             isGPSStreamingEnabled = true
-            Log.d(TAG, "GPS streaming enabled")
         }
     }
 
@@ -441,6 +460,8 @@ class SensorStreamer(
             return
         }
         handler.post {
+            // removeUpdates(this) unregisters from ALL providers this listener
+            // was registered with, so a single call covers both GPS and network.
             locationManager.removeUpdates(this)
             isGPSStreamingEnabled = false
             Log.d(TAG, "GPS streaming disabled")

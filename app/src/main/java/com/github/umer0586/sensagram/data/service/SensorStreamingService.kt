@@ -44,6 +44,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -164,8 +165,12 @@ class SensorStreamingService : Service() {
             }
 
             launch {
-                settingsRepository.setting.collect { setting ->
-                    Log.d(TAG, "GPS option enabled ${settings.gpsStreaming}")
+                // drop(1) skips the initial emission — GPS is enabled explicitly
+                // below after startStreaming() guarantees the handler exists.
+                // This collector only fires when the user toggles the setting
+                // at runtime while streaming is already active.
+                settingsRepository.setting.drop(1).collect { setting ->
+                    Log.d(TAG, "GPS option changed to ${setting.gpsStreaming}")
                     if (setting.gpsStreaming) sensorStreamer?.enableGPSStreaming()
                     else sensorStreamer?.disableGPSStreaming()
                 }
@@ -235,6 +240,14 @@ class SensorStreamingService : Service() {
         }
 
         sensorStreamer?.startStreaming()
+
+        // enableGPSStreaming() requires the HandlerThread to be running, which
+        // startStreaming() guarantees by this point.  Calling it here avoids
+        // the race condition where the settings collector fires before the
+        // handler is initialised and silently returns without doing anything.
+        if (settings.gpsStreaming) {
+            sensorStreamer?.enableGPSStreaming()
+        }
 
     }
 
