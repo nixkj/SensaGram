@@ -189,6 +189,19 @@ fun SettingsScreenContent(
             }
         )
 
+        SwitchPreference(
+            title = "GPS Streaming",
+            subtitle = if (uiState.gpsStreaming)
+                "Location will be included in each packet"
+            else
+                "Location data will not be sent",
+            checked = uiState.gpsStreaming,
+            onCheckedChange = {
+                onUIEvent(SettingScreenEvent.OnGpsStreamingChange(it))
+                onUIEvent(SettingScreenEvent.OnSaveGpsStreaming(it))
+            }
+        )
+
         var sendIntervalEditMode by remember { mutableStateOf(false) }
 
         AnimatedVisibility(visible = sendIntervalEditMode) {
