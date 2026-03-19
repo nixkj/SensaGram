@@ -328,6 +328,7 @@ fun HomeScreenContentPreview2(
             samplingRate = 1000,
             sendIntervalMs = 500,
             useTcp = false,
+            deviceId = "preview-device",
             sensors = emptyList()
         )
     )
@@ -359,6 +360,7 @@ fun HomeScreenContentLandScapePreview(
             samplingRate = 1000,
             sendIntervalMs = 500,
             useTcp = false,
+            deviceId = "preview-device",
             sensors = emptyList()
         )
     )

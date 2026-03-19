@@ -132,6 +132,9 @@ class SensorStreamingService : Service() {
 
         val settingsRepository = SettingsRepositoryImp(applicationContext)
         val settings = settingsRepository.setting.first()
+        // Fetch (or generate on first run) the stable device identifier.
+        // This survives IP changes, reconnections, and app restarts.
+        val deviceId = settingsRepository.getOrCreateDeviceId()
 
         sensorStreamer = SensorStreamer(
             context = applicationContext,
@@ -140,6 +143,7 @@ class SensorStreamingService : Service() {
             samplingRate = settings.samplingRate,
             sendIntervalMs = settings.sendIntervalMs,
             useTcp = settings.useTcp,
+            deviceId = deviceId,
             sensors = settings.selectedSensors.toSensors(applicationContext)
         )
 

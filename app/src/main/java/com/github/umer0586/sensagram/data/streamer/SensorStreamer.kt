@@ -57,6 +57,7 @@ data class StreamingInfo(
     val samplingRate  : Int,
     val sendIntervalMs: Int,
     val useTcp        : Boolean,
+    val deviceId      : String,
     val sensors       : List<DeviceSensor>
 )
 
@@ -128,6 +129,13 @@ class SensorStreamer(
     val sendIntervalMs: Int,
     /** true = TCP, false = UDP */
     val useTcp        : Boolean,
+    /**
+     * Stable device identifier stamped into every outgoing JSON packet so the
+     * server can route data by device even when the source IP changes (LTE/GSM
+     * reconnects, NAT rebinds, etc.).  Generated once by [SettingsRepositoryImp]
+     * and reused for the lifetime of the installation.
+     */
+    val deviceId      : String,
     private var sensors: List<Sensor>
 ) : SensorEventListener, LocationListener {
 
@@ -178,6 +186,7 @@ class SensorStreamer(
                 samplingRate   = samplingRate,
                 sendIntervalMs = sendIntervalMs,
                 useTcp         = useTcp,
+                deviceId       = deviceId,
                 sensors        = sensors.toDeviceSensors()
             )
             false -> null
@@ -238,6 +247,7 @@ class SensorStreamer(
                 samplingRate   = samplingRate,
                 sendIntervalMs = sendIntervalMs,
                 useTcp         = useTcp,
+                deviceId       = deviceId,
                 sensors        = sensors.toDeviceSensors()
             )
         )
@@ -383,6 +393,7 @@ class SensorStreamer(
             val stats = sensorBuffers[type]?.drainAndAggregate() ?: continue
 
             val payload = mutableMapOf<String, Any>()
+            payload["device_id"] = deviceId
             payload["type"]      = type
             payload["timestamp"] = System.nanoTime()
             payload["values"]    = stats["latest"]!!.toList()
@@ -443,6 +454,7 @@ class SensorStreamer(
 
     private fun Location.toJson(): String {
         val loc = mutableMapOf<String, Any>()
+        loc["device_id"] = deviceId
         loc["type"]      = "android.gps"
         loc["longitude"] = longitude
         loc["latitude"]  = latitude

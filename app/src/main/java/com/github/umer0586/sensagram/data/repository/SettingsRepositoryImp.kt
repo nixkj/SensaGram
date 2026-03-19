@@ -34,9 +34,11 @@ import com.github.umer0586.sensagram.data.model.toDeviceSensor
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import java.util.UUID
 
 //The delegate will ensure that we have a single instance of DataStore with that name in our application.
 private val Context.userPreferencesDataStore: DataStore<Preferences> by preferencesDataStore("user_pref")
@@ -57,6 +59,8 @@ class SettingsRepositoryImp(
     private val KEY_GPS_STREAMING = booleanPreferencesKey("GPS_STREAMING")
     private val KEY_SEND_INTERVAL_MS = intPreferencesKey("SEND_INTERVAL_MS")
     private val KEY_USE_TCP          = booleanPreferencesKey("USE_TCP")
+    // Stable device identifier — written once, never changed or exposed in the UI.
+    private val KEY_DEVICE_ID        = stringPreferencesKey("DEVICE_ID")
 
     private val DEFAULT_IP = "127.0.0.1"
     private val DEFAULT_PORT = 8080
@@ -103,5 +107,25 @@ class SettingsRepositoryImp(
             )
         }
 
+    }
+
+    /**
+     * Returns the persistent device identifier.
+     *
+     * On the very first call the DataStore has no entry for DEVICE_ID, so a
+     * random UUID is generated, written, and returned.  Every subsequent call
+     * (across sessions, reconnections, and IP changes) returns the same value.
+     *
+     * The ID is never shown in the UI and is never written by [saveSetting],
+     * so user edits to other settings cannot accidentally overwrite it.
+     */
+    override suspend fun getOrCreateDeviceId(): String = withContext(ioDispatcher) {
+        val prefs = context.userPreferencesDataStore.data.first()
+        val existing = prefs[KEY_DEVICE_ID]
+        if (!existing.isNullOrBlank()) return@withContext existing
+
+        val newId = UUID.randomUUID().toString()
+        context.userPreferencesDataStore.edit { it[KEY_DEVICE_ID] = newId }
+        newId
     }
 }
