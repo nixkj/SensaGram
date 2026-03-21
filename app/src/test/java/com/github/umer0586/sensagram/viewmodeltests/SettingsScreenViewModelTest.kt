@@ -31,7 +31,7 @@ class SettingsScreenViewModelTest {
 
     private val initialSettings = Setting(
         ipAddress = "192.168.1.1",
-        portNo = 8080,
+        portNo = 47892,
         selectedSensors = emptyList(),
         samplingRate = 1000,
         streamOnBoot = false,
@@ -92,11 +92,11 @@ class SettingsScreenViewModelTest {
 
         val viewModel = SettingsScreenViewModel(settingsRepository)
         // When
-        viewModel.onUiEvent(SettingScreenEvent.OnPortNoChange(8080))
+        viewModel.onUiEvent(SettingScreenEvent.OnPortNoChange(47892))
 
         // Then
         viewModel.uiState.value.let { uiState ->
-            assertEquals(8080, uiState.portNo)
+            assertEquals(47892, uiState.portNo)
             assertTrue(uiState.isPortNoValid)
         }
 
@@ -160,13 +160,13 @@ class SettingsScreenViewModelTest {
     fun `saving port number updates repository`() = runTest{
 
         val viewModel = SettingsScreenViewModel(settingsRepository)
-        viewModel.onUiEvent(SettingScreenEvent.OnSavePortNo(8080))
+        viewModel.onUiEvent(SettingScreenEvent.OnSavePortNo(47892))
 
         // Advance time and ensure collection happens
         testScheduler.advanceUntilIdle()
 
         // Then
-        verify(settingsRepository).saveSetting(initialSettings.copy(portNo = 8080))
+        verify(settingsRepository).saveSetting(initialSettings.copy(portNo = 47892))
     }
 
     @Test

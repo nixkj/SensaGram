@@ -22,7 +22,6 @@ package com.github.umer0586.sensagram.ui.screens.settings
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.umer0586.sensagram.data.model.DEFAULT_GPS_STREAMING
 import com.github.umer0586.sensagram.data.model.DEFAULT_IP
 import com.github.umer0586.sensagram.data.model.DEFAULT_PORT
 import com.github.umer0586.sensagram.data.model.DEFAULT_SAMPLING_RATE
@@ -48,7 +47,6 @@ data class SettingsScreenUiState(
     val savedSamplingRate: Int = DEFAULT_SAMPLING_RATE,
     val isSamplingRateValid: Boolean = true,
     val streamOnBoot : Boolean = DEFAULT_STREAM_ON_BOOT,
-    val gpsStreaming : Boolean = DEFAULT_GPS_STREAMING,
     val sendIntervalMs: Int = DEFAULT_SEND_INTERVAL_MS,
     val savedSendIntervalMs: Int = DEFAULT_SEND_INTERVAL_MS,
     val isSendIntervalValid: Boolean = true,
@@ -68,8 +66,6 @@ sealed class SettingScreenEvent {
     data class OnSaveSendInterval(val sendIntervalMs: Int) : SettingScreenEvent()
     data class OnUseTcpChange(val useTcp: Boolean) : SettingScreenEvent()
     data class OnSaveUseTcp(val useTcp: Boolean) : SettingScreenEvent()
-    data class OnGpsStreamingChange(val gpsStreaming: Boolean) : SettingScreenEvent()
-    data class OnSaveGpsStreaming(val gpsStreaming: Boolean) : SettingScreenEvent()
 }
 
 class SettingsScreenViewModel(private val settingsRepository: SettingsRepository) : ViewModel() {
@@ -109,7 +105,6 @@ class SettingsScreenViewModel(private val settingsRepository: SettingsRepository
                         savedPortNo         = settings.portNo,
                         savedSamplingRate   = settings.samplingRate,
                         streamOnBoot        = settings.streamOnBoot,
-                        gpsStreaming        = settings.gpsStreaming,
                         savedSendIntervalMs = settings.sendIntervalMs,
                         useTcp              = settings.useTcp,
                     )
@@ -133,8 +128,6 @@ class SettingsScreenViewModel(private val settingsRepository: SettingsRepository
             is SettingScreenEvent.OnSaveSendInterval   -> saveSendInterval(event.sendIntervalMs)
             is SettingScreenEvent.OnUseTcpChange       -> onUseTcpChange(event.useTcp)
             is SettingScreenEvent.OnSaveUseTcp         -> saveUseTcp(event.useTcp)
-            is SettingScreenEvent.OnGpsStreamingChange -> onGpsStreamingChange(event.gpsStreaming)
-            is SettingScreenEvent.OnSaveGpsStreaming   -> saveGpsStreaming(event.gpsStreaming)
         }
     }
 
@@ -228,16 +221,6 @@ class SettingsScreenViewModel(private val settingsRepository: SettingsRepository
         }
     }
 
-    private fun onGpsStreamingChange(gpsStreaming: Boolean) {
-        _uiState.update { it.copy(gpsStreaming = gpsStreaming) }
-    }
-
-    private fun saveGpsStreaming(gpsStreaming: Boolean) {
-        viewModelScope.launch {
-            val oldSettings = settingsRepository.setting.first()
-            settingsRepository.saveSetting(oldSettings.copy(gpsStreaming = gpsStreaming))
-        }
-    }
 
 }
 

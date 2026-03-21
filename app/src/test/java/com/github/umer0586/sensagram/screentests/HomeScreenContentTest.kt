@@ -21,7 +21,7 @@ class HomeScreenContentTest {
 
     private val streamingInfo = StreamingInfo(
         address = "192.168.1.1",
-        portNo = 8080,
+        portNo = 47892,
         samplingRate = 1000,
         sensors = emptyList()
     )

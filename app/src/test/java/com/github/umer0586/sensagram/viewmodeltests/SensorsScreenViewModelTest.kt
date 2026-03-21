@@ -50,7 +50,7 @@ class SensorsScreenViewModelTest {
 
         val initialSettings = Setting(
             ipAddress = "192.168.1.1",
-            portNo = 8080,
+            portNo = 47892,
             selectedSensors = emptyList(),
             samplingRate = 1000,
             streamOnBoot = false,
@@ -80,7 +80,7 @@ class SensorsScreenViewModelTest {
 
         val initialSettings = Setting(
             ipAddress = "192.168.1.1",
-            portNo = 8080,
+            portNo = 47892,
             selectedSensors = emptyList(),
             samplingRate = 1000,
             streamOnBoot = false,
@@ -108,7 +108,7 @@ class SensorsScreenViewModelTest {
         val lastSelectedSensor = listOf(accelerometer, gyroscope, light)
         val initialSettings = Setting(
             ipAddress = "192.168.1.1",
-            portNo = 8080,
+            portNo = 47892,
             selectedSensors = lastSelectedSensor,
             samplingRate = 1000,
             streamOnBoot = false,
@@ -152,7 +152,7 @@ class SensorsScreenViewModelTest {
 
         val initialSettings = Setting(
             ipAddress = "192.168.1.1",
-            portNo = 8080,
+            portNo = 47892,
             selectedSensors = emptyList(),
             samplingRate = 1000,
             streamOnBoot = false,

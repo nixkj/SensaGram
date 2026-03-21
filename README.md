@@ -126,8 +126,98 @@ A demonstration of Sensagram's sensor data streaming capabilities via UDP, utili
 
 ## Links to Projects Using SensaGram
 1. Python program that receives data via UDP through the sensagram application, and generates graphs in relation to a structure for remote management and damage alerts. [https://github.com/DaviCunhaQ/riggy](https://github.com/DaviCunhaQ/riggy)
-2. Augmented reality prototype for teaching 3D geometry, where geometric figures (cube, sphere, cone, etc.) are displayed in real time over video. It uses OpenGL, OpenCV, and integrates with the **SensaGram** app to control figure rotation via a smartphone’s accelerometer. [https://github.com/zrafa/ra](https://github.com/zrafa/ra)
+2. Augmented reality prototype for teaching 3D geometry, where geometric figures (cube, sphere, cone, etc.) are displayed in real time over video. It uses OpenGL, OpenCV, and integrates with the **SensaGram** app to control figure rotation via a smartphone's accelerometer. [https://github.com/zrafa/ra](https://github.com/zrafa/ra)
 3. Demonstration of IMU-only dead reckoning using a smartphone as a sensor platform, and explicitly observe and analyze drift behavior [https://github.com/PratyushPro2001/phonefusion_nav](https://github.com/PratyushPro2001/phonefusion_nav)
 
 
 
+
+---
+
+## Fork Changes
+
+This fork extends the original SensaGram codebase with the following modifications.
+
+### Transport
+
+**TCP support** — A toggle in Settings switches between UDP (original behaviour) and TCP. TCP provides guaranteed, ordered delivery and is better suited to reliable logging scenarios. The Remote Address field now also accepts a fully-qualified domain name (e.g. `data.example.com`) in addition to IPv4 addresses.
+
+**Automatic TCP reconnect** — If a TCP connection is lost mid-stream the app retries in the background without stopping the sensor pipeline. The home screen shows a "reconnecting…" indicator while recovery is in progress. Sensor readings continue to buffer during the outage.
+
+**Graceful TCP connection failure** — If the server is not reachable when streaming starts, a descriptive toast is shown and the app does not crash.
+
+### Packet format
+
+Each packet now includes per-interval statistics alongside the existing `values` field:
+
+```json
+{
+  "type": "android.sensor.accelerometer",
+  "timestamp": 3925657519043709,
+  "values": [0.319, -0.978, 10.050],
+  "min":    [0.281, -1.024,  9.980],
+  "max":    [0.356, -0.931, 10.130],
+  "avg":    [0.320, -0.977, 10.052],
+  "stdDev": [0.021,  0.030,  0.054]
+}
+```
+
+Statistics are computed over all readings received within one send interval and are reset on each flush.
+
+A `device_id` field is also included in every packet — a UUID generated once by the app and persisted across restarts. The receiver uses this to route packets to the correct per-device state reliably even across LTE reconnects or NAT rebinds. Older app versions without this field fall back to source IP for identification.
+
+### Configurable send interval
+
+A **Send Interval (ms)** setting controls how frequently the app sends a packet. Sensor readings are buffered between flushes; statistics are derived from the full buffer. The default is 500 ms; the valid range is 50 ms – 60 000 ms.
+
+**GPS send-interval alignment** — GPS fixes are buffered and sent on the same timer as sensor data rather than immediately on arrival, so all data types respect the configured send interval.
+
+### Background operation
+
+**Wake lock** — A `PARTIAL_WAKE_LOCK` is held for the duration of streaming, preventing Doze mode from pausing the flush scheduler when the screen is off.
+
+**Battery optimisation exemption prompt** — On first stream, the app checks whether it is excluded from battery optimisation. If not, a dialog prompts the user to grant the exemption via the standard Android system screen. This is particularly important on Xiaomi / HyperOS devices where the vendor battery manager operates independently of the Android wake lock.
+
+### Multi-device support
+
+Up to 10 SensaGram devices can stream simultaneously to a single receiver instance. Each device is identified by its `device_id` UUID (see Packet format above), with source IP as a fallback for older app versions. Packets from devices beyond the cap are silently dropped with a log warning. In standard mode each device gets its own set of per-sensor CSV files; in mobility mode each device gets its own combined CSV.
+
+### Python receiver (`server.py`)
+
+A consolidated receiver script replaces the original basic example. It supports two modes selected at the command line:
+
+**Standard mode** — receives all sensor types, prints stats to the console, and optionally logs each sensor type to its own CSV file per device.
+
+**Mobility mode** (`--mobility`) — receives GPS and accelerometer only. Writes a single combined CSV per device where each row is one accelerometer packet paired with the most recently received GPS fix. GPS columns are left blank if no fix is available, so rows are written at the configured send interval regardless of GPS availability. GPS fixes with all sub-accuracies equal to zero (a signature of Android's stale cached position) or with horizontal accuracy worse than 100 m are discarded.
+
+```
+# Standard mode
+python3 server.py                           # UDP, console only
+python3 server.py --tcp                     # TCP, console only
+python3 server.py --tcp --csv run1          # TCP + per-sensor CSV files
+python3 server.py --csv run1                # UDP + per-sensor CSV files
+
+# Mobility mode
+python3 server.py --mobility                        # UDP, console only
+python3 server.py --mobility --tcp                  # TCP, console only
+python3 server.py --mobility --tcp --csv my_run     # TCP + combined CSV per device
+
+# Other options
+python3 server.py --port 8080               # override default port (default: 47892)
+python3 server.py --debug                   # enable DEBUG logging (shows discarded GPS fixes etc.)
+```
+
+When CSV logging is active, sensor data is suppressed from the console so operational messages (connections, disconnections, errors) remain readable. All operational messages are always written to `server.log` with timestamps regardless of mode.
+
+CSV files are named using the device key (UUID or IP) to avoid collisions:
+
+| Mode | File pattern |
+|---|---|
+| Standard | `<prefix>_<device-key>_<sensor>.csv` |
+| Mobility | `<prefix>_<device-key>.csv` |
+
+### Other
+
+- LeakCanary removed from debug builds (eliminated the "Leaks" launcher icon)
+- Sampling Rate and Send Interval settings include an inline help text when in edit mode
+- Stream On Boot and Use TCP settings show a descriptive subtitle reflecting the current state

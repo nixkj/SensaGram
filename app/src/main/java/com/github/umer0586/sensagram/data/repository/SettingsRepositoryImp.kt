@@ -63,7 +63,7 @@ class SettingsRepositoryImp(
     private val KEY_DEVICE_ID        = stringPreferencesKey("DEVICE_ID")
 
     private val DEFAULT_IP = "127.0.0.1"
-    private val DEFAULT_PORT = 8080
+    private val DEFAULT_PORT = 47892
     private val DEFAULT_SAMPLING_RATE = 20000
     private val DEFAULT_STREAM_ON_BOOT = false
     private val DEFAULT_GPS_STREAMING = false

@@ -49,7 +49,7 @@ class SettingsScreenContentTest {
             ipAddress = "192.168.1.18",
             isIpAddressValid = true,
             savedIpAddress = "192.168.1.1",
-            portNo = 8080,
+            portNo = 47892,
             isPortNoValid = true,
             savedPortNo = 8085,
             samplingRate = 200000,
@@ -80,7 +80,7 @@ class SettingsScreenContentTest {
             SettingsScreenUiState(
                 streamOnBoot = true,
                 savedIpAddress = "192.168.1.10",
-                savedPortNo = 8080
+                savedPortNo = 47892
             )
 
 
@@ -93,7 +93,7 @@ class SettingsScreenContentTest {
 
         }
         // Assert that the "Target Address: ..." text is displayed
-        composeTestRule.onNodeWithText("Target Address : 192.168.1.10:8080").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Target Address : 192.168.1.10:47892").assertIsDisplayed()
     }
 
     @Test
@@ -102,7 +102,7 @@ class SettingsScreenContentTest {
             SettingsScreenUiState(
                 streamOnBoot = false, // Set streamOnBoot to true
                 savedIpAddress = "192.168.1.10",
-                savedPortNo = 8080
+                savedPortNo = 47892
             )
 
 
@@ -115,7 +115,7 @@ class SettingsScreenContentTest {
 
         }
         // Assert that the "Target Address: ..." text is displayed
-        composeTestRule.onNodeWithText("Target Address : 192.168.1.10:8080").assertIsNotDisplayed()
+        composeTestRule.onNodeWithText("Target Address : 192.168.1.10:47892").assertIsNotDisplayed()
     }
 
     @Test

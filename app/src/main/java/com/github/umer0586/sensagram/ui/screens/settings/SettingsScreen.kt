@@ -189,19 +189,6 @@ fun SettingsScreenContent(
             }
         )
 
-        SwitchPreference(
-            title = "GPS Streaming",
-            subtitle = if (uiState.gpsStreaming)
-                "Location will be included in each packet"
-            else
-                "Location data will not be sent",
-            checked = uiState.gpsStreaming,
-            onCheckedChange = {
-                onUIEvent(SettingScreenEvent.OnGpsStreamingChange(it))
-                onUIEvent(SettingScreenEvent.OnSaveGpsStreaming(it))
-            }
-        )
-
         var sendIntervalEditMode by remember { mutableStateOf(false) }
 
         AnimatedVisibility(visible = sendIntervalEditMode) {
@@ -276,14 +263,14 @@ fun SettingsScreenContentPreview(){
                 ipAddress = "192.168.1.1",
                 isIpAddressValid = true,
                 savedIpAddress = "192.168.1.1",
-                portNo = 8080,
+                portNo = 47892,
                 isPortNoValid = true,
-                savedPortNo = 8080,
+                savedPortNo = 47892,
                 samplingRate = 200000,
                 savedSamplingRate = 200000,
                 isSamplingRateValid = true,
-                sendIntervalMs = 500,
-                savedSendIntervalMs = 500,
+                sendIntervalMs = 1000,
+                savedSendIntervalMs = 1000,
                 isSendIntervalValid = true,
                 useTcp = false,
             ),
