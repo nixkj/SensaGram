@@ -1,8 +1,17 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
 }
+
+// Load signing credentials from keystore.properties in the project root.
+// This file must NOT be committed to source control.
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties()
+keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 
 android {
     namespace = "com.github.umer0586.sensagram"
@@ -21,9 +30,19 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile     = file(keystoreProperties["storeFile"].toString())
+            storePassword = keystoreProperties["storePassword"].toString()
+            keyAlias      = keystoreProperties["keyAlias"].toString()
+            keyPassword   = keystoreProperties["keyPassword"].toString()
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig   = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
