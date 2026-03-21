@@ -4,11 +4,11 @@ const val DEFAULT_IP = "127.0.0.1"
 const val DEFAULT_PORT = 47892
 const val DEFAULT_SAMPLING_RATE = 200000
 const val DEFAULT_STREAM_ON_BOOT = true
-const val DEFAULT_GPS_STREAMING = true
+const val DEFAULT_GPS_STREAMING = false
 // How often (in milliseconds) the app sends a packet with aggregated stats.
 const val DEFAULT_SEND_INTERVAL_MS = 1000
 // Use TCP instead of UDP for transport
-const val DEFAULT_USE_TCP = false
+const val DEFAULT_USE_TCP = true
 
 data class Setting(
     val ipAddress      : String          = DEFAULT_IP,

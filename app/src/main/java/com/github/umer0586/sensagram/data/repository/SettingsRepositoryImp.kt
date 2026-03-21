@@ -64,11 +64,11 @@ class SettingsRepositoryImp(
 
     private val DEFAULT_IP = "127.0.0.1"
     private val DEFAULT_PORT = 47892
-    private val DEFAULT_SAMPLING_RATE = 20000
-    private val DEFAULT_STREAM_ON_BOOT = false
+    private val DEFAULT_SAMPLING_RATE = 200000
+    private val DEFAULT_STREAM_ON_BOOT = true
     private val DEFAULT_GPS_STREAMING = false
-    private val DEFAULT_SEND_INTERVAL_MS = 500
-    private val DEFAULT_USE_TCP = false
+    private val DEFAULT_SEND_INTERVAL_MS = 1000
+    private val DEFAULT_USE_TCP = true
 
     override suspend fun saveSetting(setting: Setting) = withContext<Unit>(ioDispatcher) {
         context.userPreferencesDataStore.edit { pref ->

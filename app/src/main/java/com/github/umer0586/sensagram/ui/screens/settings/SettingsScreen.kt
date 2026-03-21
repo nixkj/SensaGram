@@ -198,7 +198,7 @@ fun SettingsScreenContent(
                     .testTag("SendIntervalDetail"),
                 text = "How often (in milliseconds) the app sends a UDP packet containing " +
                         "aggregated sensor stats (min, max, std dev) collected since the last send. " +
-                        "Valid range: 50 ms – 60 000 ms. Default: 500 ms.",
+                        "Valid range: 50 ms – 60 000 ms. Default: 1 000 ms.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -272,7 +272,7 @@ fun SettingsScreenContentPreview(){
                 sendIntervalMs = 1000,
                 savedSendIntervalMs = 1000,
                 isSendIntervalValid = true,
-                useTcp = false,
+                useTcp = true,
             ),
             onUIEvent = {}
         )
